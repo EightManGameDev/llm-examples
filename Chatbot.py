@@ -107,12 +107,23 @@ if prompt:
     with st.chat_message("user", avatar=USER_AVATAR):
         st.write(prompt)
 
+    # Temporary "thinking" message
+    thinking_message = {"Role": "assistant", "Content": "Nova is thinking..."}
+    st.session_state["chat_history"].append(thinking_message)
+    thinking_index = len(st.session_state["chat_history"]) - 1  # Track index
+
+    with st.chat_message("assistant", avatar=NOVA_AVATAR):
+        st.write("Nova is thinking...")
+
     # Send message to N8N for AI response
     try:
         response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
         if response.status_code == 200:
             response_data = response.json().get("output", {})
             messages = response_data.get("messages", [])
+
+            # Replace "Nova is thinking..." with the actual response
+            st.session_state["chat_history"].pop(thinking_index)  
 
             for msg in messages:
                 role = msg.get("role", "")
@@ -125,7 +136,7 @@ if prompt:
                         st.write(content)
 
                 elif role == "system":
-                    # Display system messages as a highlighted "Nova Action" log
+                    # Display system messages as "Nova Action" log
                     action_message = {"Role": "system", "Content": content}
                     st.session_state["chat_history"].append(action_message)
                     with st.chat_message("system"):
@@ -147,4 +158,5 @@ if prompt:
 
     except Exception as e:
         st.error(f"Connection error: {e}")
+
 
