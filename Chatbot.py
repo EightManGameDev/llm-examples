@@ -1,12 +1,8 @@
 import streamlit as st
 import requests
 
-
-
 # Configure the page
-
 st.set_page_config(page_title="Nova", page_icon="🚀")
-
 
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
@@ -18,6 +14,7 @@ SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-
 # User & Nova avatars
 USER_AVATAR = "assets/josh.png"
 NOVA_AVATAR = "assets/nova.png"
+ACTION_ICON = "🔹"  # Universal icon for AI-executed actions
 
 # Function to fetch chat history
 def fetch_chat_history():
@@ -42,7 +39,7 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# JavaScript for auto-scrolling down
+# JavaScript for ensuring chat starts from bottom (but no forced scrolling)
 st.markdown("""
     <script>
         function scrollToBottom() {
@@ -55,17 +52,34 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Display chat messages with avatars
-if st.session_state["chat_history"]:
-    for msg in st.session_state["chat_history"]:
-        role = "user" if msg["Role"] == "user" else "assistant"
-        avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+# Function to render messages with distinction for AI actions
+def render_message(msg):
+    role = "user" if msg["Role"] == "user" else "assistant"
+    avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+
+    if "ActionType" in msg:
+        # Special format for AI-executed actions
+        with st.chat_message("assistant", avatar=avatar):
+            st.markdown(
+                f"""
+                <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
+                    <strong>{ACTION_ICON} {msg["ActionType"]} Completed</strong>  
+                    <p>{msg["Content"]}</p>
+                    {f'<a href="{msg["ActionLink"]}" target="_blank">🔗 View Event</a>' if "ActionLink" in msg else ""}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        # Normal chat message
         with st.chat_message(role, avatar=avatar):
             st.write(msg["Content"])
-else:
-    st.error("Failed to load chat history.")
 
-# Button to load older messages (only when scrolling up)
+# Render chat history
+for msg in st.session_state["chat_history"]:
+    render_message(msg)
+
+# Button to load older messages (only appears when scrolling up)
 if st.session_state.get("show_load_button", False):
     if st.button("🔼 Load Older Messages"):
         old_messages = fetch_chat_history()
@@ -73,7 +87,7 @@ if st.session_state.get("show_load_button", False):
             st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
             st.experimental_rerun()
 
-# JavaScript to listen for scroll events (for showing the button)
+# JavaScript to listen for scroll events (to toggle the "Load Older Messages" button)
 st.markdown("""
     <script>
         var chatContainer = window.parent.document.querySelector('.main');
@@ -99,13 +113,21 @@ if prompt:
         response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
         if response.status_code == 200:
             ai_response = response.json().get("response", "Nova is thinking...")
-            st.session_state["chat_history"].append({"Role": "assistant", "Content": ai_response})
-            with st.chat_message("assistant", avatar=NOVA_AVATAR):
-                st.write(ai_response)
+            action_type = response.json().get("actionType", None)
+            action_link = response.json().get("actionLink", None)
+
+            message = {"Role": "assistant", "Content": ai_response}
+            if action_type:
+                message["ActionType"] = action_type
+            if action_link:
+                message["ActionLink"] = action_link
+
+            st.session_state["chat_history"].append(message)
+            render_message(message)
             
-            # **Auto-scroll to the bottom after receiving a response**
+            # Auto-scroll to the bottom after receiving a response
             st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
-            
+
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
