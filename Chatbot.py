@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Configure the page
-st.set_page_config(page_title="Nova", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Nova", page_icon="🚀", initial_sidebar_state="collapsed")
 
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
