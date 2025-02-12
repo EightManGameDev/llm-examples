@@ -7,7 +7,7 @@ st.caption("Assisting you in building an empire 🚀")
 
 # Webhook URLs for fetching chat history & sending messages
 HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
-SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/your-post-webhook-url"
+SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
 
 # User & Nova avatars
 USER_AVATAR = "https://your-image-url.com/josh.png"
