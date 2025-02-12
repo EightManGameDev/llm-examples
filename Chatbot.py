@@ -30,8 +30,10 @@ if prompt := st.chat_input():
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # Simplified payload
-    payload = {"message": prompt}
+    # Modify payload to send conversation history
+    payload = {
+        "messages": st.session_state.messages  # Send entire chat history
+    }
 
     try:
         if st.session_state["debug_mode"]:
