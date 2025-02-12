@@ -37,6 +37,33 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
+# Inject JavaScript for scroll detection
+scroll_script = """
+<script>
+    function checkScroll() {
+        var chatContainer = document.getElementById("chat-container");
+        var loadButton = document.getElementById("load-older-messages");
+
+        if (chatContainer.scrollTop === 0) {
+            loadButton.style.display = "block";
+        } else {
+            loadButton.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var chatContainer = document.getElementById("chat-container");
+        chatContainer.addEventListener("scroll", checkScroll);
+    });
+</script>
+"""
+
+# Inject the JavaScript
+st.components.v1.html(scroll_script, height=0)
+
+# Chat messages container
+st.markdown('<div id="chat-container" style="height: 500px; overflow-y: scroll; padding: 10px;">', unsafe_allow_html=True)
+
 # Display chat messages with avatars
 if st.session_state["chat_history"]:
     for msg in st.session_state["chat_history"]:
@@ -47,12 +74,11 @@ if st.session_state["chat_history"]:
 else:
     st.error("Failed to load chat history.")
 
-# Button to load older messages
-if st.button("🔼 Load Older Messages"):
-    old_messages = fetch_chat_history()
-    if old_messages:
-        st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
-        st.experimental_rerun()
+# Close the chat-container div
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Load Older Messages Button (Initially Hidden)
+st.markdown('<button id="load-older-messages" style="display:none;">🔼 Load Older Messages</button>', unsafe_allow_html=True)
 
 # Chat input
 prompt = st.chat_input("Type your message here...")
