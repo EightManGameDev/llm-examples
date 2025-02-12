@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 
 # Configure the page
-st.title("💬 Chatbot")
-st.caption("🚀 A Streamlit chatbot powered by n8n")
+st.title("Nove")
+st.caption("Assisting you in building an empire 🚀")
 
 # N8N production webhook URL
 N8N_WEBHOOK_URL = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
