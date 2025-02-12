@@ -10,8 +10,8 @@ HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-
 SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
 
 # User & Nova avatars
-USER_AVATAR = "https://your-image-url.com/josh.png"
-NOVA_AVATAR = "https://your-image-url.com/nova.png"
+USER_AVATAR = "https://github.com/EightManGameDev/llm-examples/assets/josh.png"
+NOVA_AVATAR = "https://github.com/EightManGameDev/llm-examples/assets/nova.png"
 
 # Function to fetch chat history
 def fetch_chat_history():
