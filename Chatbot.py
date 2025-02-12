@@ -26,7 +26,7 @@ def fetch_chat_history():
         if not isinstance(messages, list):
             messages = [messages]
 
-        return messages[::-1]  # Reverse for latest messages first
+        return messages[::-1]  # Reverse for latest messages first (newest at the bottom)
 
     except Exception as e:
         st.error(f"Error loading chat history: {e}")
@@ -36,15 +36,16 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# JavaScript hack to detect scroll position
+# JavaScript for auto-scrolling down
 st.markdown("""
     <script>
-        var chatContainer = window.parent.document.querySelector('.main');
-        chatContainer.addEventListener('scroll', function() {
-            if (chatContainer.scrollTop === 0) {
-                window.parent.postMessage('scroll_top', '*');
+        function scrollToBottom() {
+            var chatContainer = window.parent.document.querySelector('.main');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
-        });
+        }
+        setTimeout(scrollToBottom, 500);
     </script>
 """, unsafe_allow_html=True)
 
@@ -58,7 +59,7 @@ if st.session_state["chat_history"]:
 else:
     st.error("Failed to load chat history.")
 
-# JavaScript-triggered button only when at the top
+# Button to load older messages (only when scrolling up)
 if st.session_state.get("show_load_button", False):
     if st.button("🔼 Load Older Messages"):
         old_messages = fetch_chat_history()
@@ -66,14 +67,13 @@ if st.session_state.get("show_load_button", False):
             st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
             st.experimental_rerun()
 
-# JavaScript to listen for scroll events
+# JavaScript to listen for scroll events (for showing the button)
 st.markdown("""
     <script>
-        window.addEventListener('message', function(event) {
-            if (event.data === 'scroll_top') {
-                window.parent.document.querySelector('iframe').contentWindow.postMessage(
-                    'set_show_load_button', '*'
-                );
+        var chatContainer = window.parent.document.querySelector('.main');
+        chatContainer.addEventListener('scroll', function() {
+            if (chatContainer.scrollTop === 0) {
+                window.parent.postMessage('scroll_top', '*');
             }
         });
     </script>
@@ -96,6 +96,10 @@ if prompt:
             st.session_state["chat_history"].append({"Role": "assistant", "Content": ai_response})
             with st.chat_message("assistant", avatar=NOVA_AVATAR):
                 st.write(ai_response)
+            
+            # **Auto-scroll to the bottom after receiving a response**
+            st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
+            
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
