@@ -2,67 +2,70 @@ import streamlit as st
 import requests
 
 # Configure the page
-st.set_page_config(page_title="Nova", page_icon="🚀", initial_sidebar_state="collapsed")
-
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
 
-# N8N production webhook URL
-N8N_WEBHOOK_URL = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
+# Webhook URLs
+N8N_HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
+N8N_CHAT_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
 
-# Initialize session state variables
+# Initialize session state
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
+    st.session_state["messages"] = []
+if "loaded_messages" not in st.session_state:
+    st.session_state["loaded_messages"] = 30  # Start with the latest 30 messages
 
-if "debug_mode" not in st.session_state:
-    st.session_state["debug_mode"] = False  # Default is OFF
+# Function to load chat history
+def load_chat_history():
+    try:
+        response = requests.get(N8N_HISTORY_WEBHOOK)
+        if response.status_code == 200:
+            chat_data = response.json().get("messages", [])
+            st.session_state["messages"] = chat_data[::-1]  # Reverse for correct order
+        else:
+            st.error("Failed to load chat history.")
+    except Exception as e:
+        st.error(f"Error loading chat history: {e}")
 
-# Sidebar settings
-with st.sidebar:
-    st.header("⚙️ Settings")
-    st.session_state["debug_mode"] = st.toggle("Enable Debug Mode", st.session_state["debug_mode"])
+# Function to load older messages
+def load_older_messages():
+    st.session_state["loaded_messages"] += 10  # Load 10 more messages
+    try:
+        response = requests.get(N8N_HISTORY_WEBHOOK)
+        if response.status_code == 200:
+            chat_data = response.json().get("messages", [])
+            st.session_state["messages"] = chat_data[::-1][:st.session_state["loaded_messages"]]
+        else:
+            st.error("Failed to load older messages.")
+    except Exception as e:
+        st.error(f"Error loading older messages: {e}")
+
+# Load chat history on startup
+if not st.session_state["messages"]:
+    load_chat_history()
 
 # Display chat history
-for msg in st.session_state.messages:
+for msg in st.session_state["messages"]:
     st.chat_message(msg["role"]).write(msg["content"])
+
+# Load older messages button
+if st.button("⬆️ Load Older Messages"):
+    load_older_messages()
 
 # Handle user input
 if prompt := st.chat_input():
-    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # Modify payload to send full conversation history
-    payload = {
-        "chatInput": prompt,  # Latest user message
-        "messages": st.session_state.messages  # Full chat history
-    }
-
-
+    # Send request to n8n webhook
+    payload = {"chatInput": prompt, "messages": st.session_state.messages}
     try:
-        if st.session_state["debug_mode"]:
-            st.info(f"📤 Sending message: {prompt}")
-
-        # Send request to n8n webhook
-        response = requests.post(N8N_WEBHOOK_URL, json=payload)
-
-        if st.session_state["debug_mode"]:
-            st.info(f"🔄 Raw response: {response.text}")
-
+        response = requests.post(N8N_CHAT_WEBHOOK, json=payload)
         if response.status_code == 200:
-            try:
-                response_data = response.json()
-                assistant_message = response_data.get("response", "Sorry, I couldn't process your request.")
-
-                # Add bot response to chat history
-                st.session_state.messages.append({"role": "assistant", "content": assistant_message})
-                st.chat_message("assistant").write(assistant_message)
-
-            except Exception as e:
-                st.error(f"⚠️ Error processing response: {str(e)}")
-
+            assistant_message = response.json().get("response", "Sorry, I couldn't process your request.")
+            st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+            st.chat_message("assistant").write(assistant_message)
         else:
             st.error(f"⚠️ Error: Status code {response.status_code} - {response.reason}")
-
     except Exception as e:
-        st.error(f"⚠️ Connection error: {str(e)}")
+        st.error(f"⚠️ Connection error: {e}")
