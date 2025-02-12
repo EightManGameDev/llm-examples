@@ -5,7 +5,7 @@ import requests
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
 
-# Webhook URLs for fetching chat history & sending messages
+# Webhook URLs
 HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
 SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
 
@@ -26,8 +26,7 @@ def fetch_chat_history():
         if not isinstance(messages, list):
             messages = [messages]
 
-        # Reverse for latest messages first
-        return messages[::-1]  
+        return messages[::-1]  # Reverse for latest messages first
 
     except Exception as e:
         st.error(f"Error loading chat history: {e}")
@@ -37,32 +36,17 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# Inject JavaScript for scroll detection
-scroll_script = """
-<script>
-    function checkScroll() {
-        var chatContainer = document.getElementById("chat-container");
-        var loadButton = document.getElementById("load-older-messages");
-
-        if (chatContainer.scrollTop === 0) {
-            loadButton.style.display = "block";
-        } else {
-            loadButton.style.display = "none";
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        var chatContainer = document.getElementById("chat-container");
-        chatContainer.addEventListener("scroll", checkScroll);
-    });
-</script>
-"""
-
-# Inject the JavaScript
-st.components.v1.html(scroll_script, height=0)
-
-# Chat messages container
-st.markdown('<div id="chat-container" style="height: 500px; overflow-y: scroll; padding: 10px;">', unsafe_allow_html=True)
+# JavaScript hack to detect scroll position
+st.markdown("""
+    <script>
+        var chatContainer = window.parent.document.querySelector('.main');
+        chatContainer.addEventListener('scroll', function() {
+            if (chatContainer.scrollTop === 0) {
+                window.parent.postMessage('scroll_top', '*');
+            }
+        });
+    </script>
+""", unsafe_allow_html=True)
 
 # Display chat messages with avatars
 if st.session_state["chat_history"]:
@@ -74,11 +58,26 @@ if st.session_state["chat_history"]:
 else:
     st.error("Failed to load chat history.")
 
-# Close the chat-container div
-st.markdown('</div>', unsafe_allow_html=True)
+# JavaScript-triggered button only when at the top
+if st.session_state.get("show_load_button", False):
+    if st.button("🔼 Load Older Messages"):
+        old_messages = fetch_chat_history()
+        if old_messages:
+            st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
+            st.experimental_rerun()
 
-# Load Older Messages Button (Initially Hidden)
-st.markdown('<button id="load-older-messages" style="display:none;">🔼 Load Older Messages</button>', unsafe_allow_html=True)
+# JavaScript to listen for scroll events
+st.markdown("""
+    <script>
+        window.addEventListener('message', function(event) {
+            if (event.data === 'scroll_top') {
+                window.parent.document.querySelector('iframe').contentWindow.postMessage(
+                    'set_show_load_button', '*'
+                );
+            }
+        });
+    </script>
+""", unsafe_allow_html=True)
 
 # Chat input
 prompt = st.chat_input("Type your message here...")
