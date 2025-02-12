@@ -5,13 +5,18 @@ import requests
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
 
-# Webhook URL for fetching chat history
-WEBHOOK_URL = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
+# Webhook URLs for fetching chat history & sending messages
+HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
+SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/your-post-webhook-url"
+
+# User & Nova avatars
+USER_AVATAR = "https://your-image-url.com/josh.png"
+NOVA_AVATAR = "https://your-image-url.com/nova.png"
 
 # Function to fetch chat history
 def fetch_chat_history():
     try:
-        response = requests.get(WEBHOOK_URL)
+        response = requests.get(HISTORY_WEBHOOK)
         data = response.json()
 
         # Extract history messages safely
@@ -32,11 +37,13 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# Display chat messages
+# Display chat messages with avatars
 if st.session_state["chat_history"]:
     for msg in st.session_state["chat_history"]:
-        role = "👤 You" if msg["Role"] == "user" else "🤖 Nova"
-        st.chat_message(role).write(msg["Content"])
+        role = "user" if msg["Role"] == "user" else "assistant"
+        avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+        with st.chat_message(role, avatar=avatar):
+            st.write(msg["Content"])
 else:
     st.error("Failed to load chat history.")
 
@@ -53,15 +60,17 @@ prompt = st.chat_input("Type your message here...")
 if prompt:
     # Append new message
     st.session_state["chat_history"].append({"Role": "user", "Content": prompt})
-    st.chat_message("👤 You").write(prompt)
+    with st.chat_message("user", avatar=USER_AVATAR):
+        st.write(prompt)
 
     # Send message to N8N for AI response
     try:
-        response = requests.post(WEBHOOK_URL, json={"chatInput": prompt})
+        response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
         if response.status_code == 200:
             ai_response = response.json().get("response", "Nova is thinking...")
             st.session_state["chat_history"].append({"Role": "assistant", "Content": ai_response})
-            st.chat_message("🤖 Nova").write(ai_response)
+            with st.chat_message("assistant", avatar=NOVA_AVATAR):
+                st.write(ai_response)
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
