@@ -36,22 +36,9 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# JavaScript for auto-scrolling down
-st.markdown("""
-    <script>
-        function scrollToBottom() {
-            var chatContainer = window.parent.document.querySelector('.main');
-            if (chatContainer) {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        }
-        setTimeout(scrollToBottom, 500);
-    </script>
-""", unsafe_allow_html=True)
-
-# Display chat messages with avatars
+# **Reverse render order**: Display newest messages first
 if st.session_state["chat_history"]:
-    for msg in st.session_state["chat_history"]:
+    for msg in reversed(st.session_state["chat_history"]):  # Reversed to simulate bottom-spawn
         role = "user" if msg["Role"] == "user" else "assistant"
         avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
         with st.chat_message(role, avatar=avatar):
@@ -66,18 +53,6 @@ if st.session_state.get("show_load_button", False):
         if old_messages:
             st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
             st.experimental_rerun()
-
-# JavaScript to listen for scroll events (for showing the button)
-st.markdown("""
-    <script>
-        var chatContainer = window.parent.document.querySelector('.main');
-        chatContainer.addEventListener('scroll', function() {
-            if (chatContainer.scrollTop === 0) {
-                window.parent.postMessage('scroll_top', '*');
-            }
-        });
-    </script>
-""", unsafe_allow_html=True)
 
 # Chat input
 prompt = st.chat_input("Type your message here...")
@@ -96,10 +71,6 @@ if prompt:
             st.session_state["chat_history"].append({"Role": "assistant", "Content": ai_response})
             with st.chat_message("assistant", avatar=NOVA_AVATAR):
                 st.write(ai_response)
-            
-            # **Auto-scroll to the bottom after receiving a response**
-            st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
-            
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
     except Exception as e:
