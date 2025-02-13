@@ -1,8 +1,12 @@
 import streamlit as st
 import requests
 
+
+
 # Configure the page
+
 st.set_page_config(page_title="Nova", page_icon="🚀")
+
 
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
@@ -38,7 +42,7 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# JavaScript for ensuring chat starts from bottom (but no forced scrolling)
+# JavaScript for auto-scrolling down
 st.markdown("""
     <script>
         function scrollToBottom() {
@@ -51,19 +55,17 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Function to render messages
-def render_message(msg):
-    role = "user" if msg["Role"] == "user" else "assistant"
-    avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+# Display chat messages with avatars
+if st.session_state["chat_history"]:
+    for msg in st.session_state["chat_history"]:
+        role = "user" if msg["Role"] == "user" else "assistant"
+        avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+        with st.chat_message(role, avatar=avatar):
+            st.write(msg["Content"])
+else:
+    st.error("Failed to load chat history.")
 
-    with st.chat_message(role, avatar=avatar):
-        st.write(msg["Content"])
-
-# Render chat history
-for msg in st.session_state["chat_history"]:
-    render_message(msg)
-
-# Button to load older messages (only appears when scrolling up)
+# Button to load older messages (only when scrolling up)
 if st.session_state.get("show_load_button", False):
     if st.button("🔼 Load Older Messages"):
         old_messages = fetch_chat_history()
@@ -71,7 +73,7 @@ if st.session_state.get("show_load_button", False):
             st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
             st.experimental_rerun()
 
-# JavaScript to listen for scroll events (to toggle the "Load Older Messages" button)
+# JavaScript to listen for scroll events (for showing the button)
 st.markdown("""
     <script>
         var chatContainer = window.parent.document.querySelector('.main');
@@ -87,7 +89,7 @@ st.markdown("""
 prompt = st.chat_input("Type your message here...")
 
 if prompt:
-    # Append user message
+    # Append new message
     st.session_state["chat_history"].append({"Role": "user", "Content": prompt})
     with st.chat_message("user", avatar=USER_AVATAR):
         st.write(prompt)
@@ -96,27 +98,15 @@ if prompt:
     try:
         response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
         if response.status_code == 200:
-            response_data = response.json().get("output", {})
-
-            # Ensure we have a messages array
-            messages = response_data.get("messages", [])
-
-            if messages:
-                for msg in messages:
-                    role = msg.get("role", "")
-                    content = msg.get("content", "")
-
-                    if role == "assistant":
-                        message = {"Role": "assistant", "Content": content}
-                        st.session_state["chat_history"].append(message)
-                        with st.chat_message("assistant", avatar=NOVA_AVATAR):
-                            st.write(content)
-
-            # Auto-scroll to bottom
+            ai_response = response.json().get("response", "Nova is thinking...")
+            st.session_state["chat_history"].append({"Role": "assistant", "Content": ai_response})
+            with st.chat_message("assistant", avatar=NOVA_AVATAR):
+                st.write(ai_response)
+            
+            # **Auto-scroll to the bottom after receiving a response**
             st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
-
+            
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
-
     except Exception as e:
         st.error(f"Connection error: {e}")
