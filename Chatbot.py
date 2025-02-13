@@ -14,7 +14,6 @@ SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-
 # User & Nova avatars
 USER_AVATAR = "assets/josh.png"
 NOVA_AVATAR = "assets/nova.png"
-ACTION_ICON = "🔹"  # Universal icon for AI-executed actions
 
 # Function to fetch chat history
 def fetch_chat_history():
@@ -52,28 +51,13 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# Function to render messages with distinction for AI actions
+# Function to render messages
 def render_message(msg):
     role = "user" if msg["Role"] == "user" else "assistant"
     avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
 
-    if "ActionType" in msg:
-        # Special format for AI-executed actions
-        with st.chat_message("assistant", avatar=avatar):
-            st.markdown(
-                f"""
-                <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
-                    <strong>{ACTION_ICON} {msg["ActionType"]} Completed</strong>  
-                    <p>{msg["Content"]}</p>
-                    {f'<a href="{msg["ActionLink"]}" target="_blank">🔗 View Event</a>' if "ActionLink" in msg else ""}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-    else:
-        # Normal chat message
-        with st.chat_message(role, avatar=avatar):
-            st.write(msg["Content"])
+    with st.chat_message(role, avatar=avatar):
+        st.write(msg["Content"])
 
 # Render chat history
 for msg in st.session_state["chat_history"]:
@@ -127,22 +111,6 @@ if prompt:
                         st.session_state["chat_history"].append(message)
                         with st.chat_message("assistant", avatar=NOVA_AVATAR):
                             st.write(content)
-
-                    elif role == "system":
-                        # Keep this for future action logs but do not display them for now
-                        action_message = {"Role": "system", "Content": content}
-                        st.session_state["chat_history"].append(action_message)
-                        # Uncomment in the future to re-enable action logs
-                        # with st.chat_message("system"):
-                        #     st.markdown(
-                        #         f"""
-                        #         <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
-                        #             <strong>🔹 Nova Action Taken:</strong>  
-                        #             <p>{content}</p>
-                        #         </div>
-                        #         """,
-                        #         unsafe_allow_html=True
-                        #     )
 
             # Auto-scroll to bottom
             st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
