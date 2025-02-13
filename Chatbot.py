@@ -107,14 +107,6 @@ if prompt:
     with st.chat_message("user", avatar=USER_AVATAR):
         st.write(prompt)
 
-    # Temporary "thinking" message
-    thinking_message = {"Role": "assistant", "Content": "Nova is thinking..."}
-    st.session_state["chat_history"].append(thinking_message)
-    thinking_index = len(st.session_state["chat_history"]) - 1  # Track index
-
-    with st.chat_message("assistant", avatar=NOVA_AVATAR):
-        st.write("Nova is thinking...")
-
     # Send message to N8N for AI response
     try:
         response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
@@ -125,9 +117,6 @@ if prompt:
             messages = response_data.get("messages", [])
 
             if messages:
-                # Remove "Nova is thinking..." placeholder
-                st.session_state["chat_history"].pop(thinking_index)
-
                 for msg in messages:
                     role = msg.get("role", "")
                     content = msg.get("content", "")
@@ -139,19 +128,20 @@ if prompt:
                             st.write(content)
 
                     elif role == "system":
-                        # Display system messages as "Nova Action" log
+                        # Keep this for future action logs but do not display them for now
                         action_message = {"Role": "system", "Content": content}
                         st.session_state["chat_history"].append(action_message)
-                        with st.chat_message("system"):
-                            st.markdown(
-                                f"""
-                                <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
-                                    <strong>🔹 Nova Action Taken:</strong>  
-                                    <p>{content}</p>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                        # Uncomment in the future to re-enable action logs
+                        # with st.chat_message("system"):
+                        #     st.markdown(
+                        #         f"""
+                        #         <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
+                        #             <strong>🔹 Nova Action Taken:</strong>  
+                        #             <p>{content}</p>
+                        #         </div>
+                        #         """,
+                        #         unsafe_allow_html=True
+                        #     )
 
             # Auto-scroll to bottom
             st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
@@ -161,6 +151,7 @@ if prompt:
 
     except Exception as e:
         st.error(f"Connection error: {e}")
+
 
 
 
