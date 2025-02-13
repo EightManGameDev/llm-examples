@@ -2,67 +2,153 @@ import streamlit as st
 import requests
 
 # Configure the page
-st.set_page_config(page_title="Nova", page_icon="🚀", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Nova", page_icon="🚀")
 
 st.title("Nova")
 st.caption("Assisting you in building an empire 🚀")
 
-# N8N production webhook URL
-N8N_WEBHOOK_URL = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
+# Webhook URLs
+HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
+SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
 
-# Initialize session state variables
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
+# User & Nova avatars
+USER_AVATAR = "assets/josh.png"
+NOVA_AVATAR = "assets/nova.png"
+ACTION_ICON = "🔹"  # Universal icon for AI-executed actions
 
-if "debug_mode" not in st.session_state:
-    st.session_state["debug_mode"] = False  # Default is OFF
-
-# Sidebar settings
-with st.sidebar:
-    st.header("⚙ Settings")
-    st.session_state["debug_mode"] = st.toggle("Enable Debug Mode", st.session_state["debug_mode"])
-
-# Display chat history
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-
-# Handle user input
-if prompt := st.chat_input():
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-
-    # Modify payload to send full conversation history
-    payload = {
-        "chatInput": prompt,  # Latest user message
-        "messages": st.session_state.messages  # Full chat history
-    }
-
-
+# Function to fetch chat history
+def fetch_chat_history():
     try:
-        if st.session_state["debug_mode"]:
-            st.info(f"📤 Sending message: {prompt}")
+        response = requests.get(HISTORY_WEBHOOK)
+        data = response.json()
 
-        # Send request to n8n webhook
-        response = requests.post(N8N_WEBHOOK_URL, json=payload)
+        # Extract history messages safely
+        messages = data.get("messages", {}).get("history", [])
 
-        if st.session_state["debug_mode"]:
-            st.info(f"🔄 Raw response: {response.text}")
+        # Ensure it's always a list
+        if not isinstance(messages, list):
+            messages = [messages]
 
-        if response.status_code == 200:
-            try:
-                response_data = response.json()
-                assistant_message = response_data.get("response", "Sorry, I couldn't process your request.")
-
-                # Add bot response to chat history
-                st.session_state.messages.append({"role": "assistant", "content": assistant_message})
-                st.chat_message("assistant").write(assistant_message)
-
-            except Exception as e:
-                st.error(f"⚠ Error processing response: {str(e)}")
-
-        else:
-            st.error(f"⚠ Error: Status code {response.status_code} - {response.reason}")
+        return messages[::-1]  # Reverse for latest messages first (newest at the bottom)
 
     except Exception as e:
-        st.error(f"⚠ Connection error: {str(e)}")
+        st.error(f"Error loading chat history: {e}")
+        return []
+
+# Load initial chat history
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = fetch_chat_history()
+
+# JavaScript for ensuring chat starts from bottom (but no forced scrolling)
+st.markdown("""
+    <script>
+        function scrollToBottom() {
+            var chatContainer = window.parent.document.querySelector('.main');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+        setTimeout(scrollToBottom, 500);
+    </script>
+""", unsafe_allow_html=True)
+
+# Function to render messages with distinction for AI actions
+def render_message(msg):
+    role = "user" if msg["Role"] == "user" else "assistant"
+    avatar = USER_AVATAR if role == "user" else NOVA_AVATAR
+
+    if "ActionType" in msg:
+        # Special format for AI-executed actions
+        with st.chat_message("assistant", avatar=avatar):
+            st.markdown(
+                f"""
+                <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
+                    <strong>{ACTION_ICON} {msg["ActionType"]} Completed</strong>  
+                    <p>{msg["Content"]}</p>
+                    {f'<a href="{msg["ActionLink"]}" target="_blank">🔗 View Event</a>' if "ActionLink" in msg else ""}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        # Normal chat message
+        with st.chat_message(role, avatar=avatar):
+            st.write(msg["Content"])
+
+# Render chat history
+for msg in st.session_state["chat_history"]:
+    render_message(msg)
+
+# Button to load older messages (only appears when scrolling up)
+if st.session_state.get("show_load_button", False):
+    if st.button("🔼 Load Older Messages"):
+        old_messages = fetch_chat_history()
+        if old_messages:
+            st.session_state["chat_history"] = old_messages + st.session_state["chat_history"]
+            st.experimental_rerun()
+
+# JavaScript to listen for scroll events (to toggle the "Load Older Messages" button)
+st.markdown("""
+    <script>
+        var chatContainer = window.parent.document.querySelector('.main');
+        chatContainer.addEventListener('scroll', function() {
+            if (chatContainer.scrollTop === 0) {
+                window.parent.postMessage('scroll_top', '*');
+            }
+        });
+    </script>
+""", unsafe_allow_html=True)
+
+# Chat input
+prompt = st.chat_input("Type your message here...")
+
+if prompt:
+    # Append user message
+    st.session_state["chat_history"].append({"Role": "user", "Content": prompt})
+    with st.chat_message("user", avatar=USER_AVATAR):
+        st.write(prompt)
+
+    # Send message to N8N for AI response
+    try:
+        response = requests.post(SEND_MESSAGE_WEBHOOK, json={"chatInput": prompt})
+        if response.status_code == 200:
+            response_data = response.json().get("output", {})
+
+            # Ensure we have a messages array
+            messages = response_data.get("messages", [])
+
+            if messages:
+                for msg in messages:
+                    role = msg.get("role", "")
+                    content = msg.get("content", "")
+
+                    if role == "assistant":
+                        message = {"Role": "assistant", "Content": content}
+                        st.session_state["chat_history"].append(message)
+                        with st.chat_message("assistant", avatar=NOVA_AVATAR):
+                            st.write(content)
+
+                    elif role == "system":
+                        # Keep this for future action logs but do not display them for now
+                        action_message = {"Role": "system", "Content": content}
+                        st.session_state["chat_history"].append(action_message)
+                        # Uncomment in the future to re-enable action logs
+                        # with st.chat_message("system"):
+                        #     st.markdown(
+                        #         f"""
+                        #         <div style="border-left: 4px solid #4CAF50; background-color: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 5px;">
+                        #             <strong>🔹 Nova Action Taken:</strong>  
+                        #             <p>{content}</p>
+                        #         </div>
+                        #         """,
+                        #         unsafe_allow_html=True
+                        #     )
+
+            # Auto-scroll to bottom
+            st.markdown("<script>setTimeout(scrollToBottom, 500);</script>", unsafe_allow_html=True)
+
+        else:
+            st.error(f"Error: {response.status_code} - {response.text}")
+
+    except Exception as e:
+        st.error(f"Connection error: {e}")
