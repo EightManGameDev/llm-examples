@@ -1,16 +1,18 @@
 import streamlit as st
 import requests
+import streamlit.components.v1 as components
 
 # Configure the page
 st.set_page_config(page_title="Nova", page_icon="🚀", layout="wide")
 
-# Custom CSS for a sleek UI
+# Custom CSS for a futuristic UI with Glassmorphism
 def set_custom_style():
     st.markdown("""
         <style>
             body {
                 background-color: #0D1117;
                 color: white;
+                font-family: 'Orbitron', sans-serif;
             }
             .stChatMessage {
                 border-radius: 15px;
@@ -28,23 +30,39 @@ def set_custom_style():
                 color: white;
                 border-radius: 15px;
                 padding: 10px;
+                font-size: 18px;
             }
             .title {
-                font-size: 42px;
+                font-size: 50px;
                 font-weight: bold;
                 text-align: center;
                 color: #39FF14;
                 margin-bottom: 10px;
             }
             .subtitle {
-                font-size: 20px;
+                font-size: 22px;
                 text-align: center;
                 color: #AAAAAA;
                 margin-bottom: 20px;
             }
             .chat-container {
-                max-width: 800px;
+                max-width: 900px;
                 margin: auto;
+                padding: 20px;
+                border-radius: 20px;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(20px);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+            .stButton > button {
+                background: linear-gradient(90deg, #39FF14, #00D4FF);
+                color: black;
+                font-size: 18px;
+                border-radius: 10px;
+                transition: 0.3s;
+            }
+            .stButton > button:hover {
+                background: linear-gradient(90deg, #00D4FF, #39FF14);
             }
         </style>
     """, unsafe_allow_html=True)
@@ -77,7 +95,7 @@ def fetch_chat_history():
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
 
-# Display chat messages in a container
+# Display chat messages in a futuristic chat container
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 if st.session_state["chat_history"]:
     for msg in st.session_state["chat_history"]:
@@ -87,7 +105,7 @@ if st.session_state["chat_history"]:
             st.write(msg["Content"])
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Chat input
+# Chat input with animations
 prompt = st.chat_input("Type your message here...")
 
 if prompt:
