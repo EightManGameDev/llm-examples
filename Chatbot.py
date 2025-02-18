@@ -2,6 +2,11 @@ import streamlit as st
 import requests
 import time
 
+
+# Ensure session state variables exist
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []  # Initialize chat history as an empty list
+
 # 🌐 Webhook URLs
 HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
 SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
@@ -53,12 +58,11 @@ def fetch_proactive_messages():
     except Exception as e:
         st.error(f"Error fetching proactive messages: {e}")
 
-
-
-polling_interval = 5  # Check every 5 seconds
-while True:
+# **Auto-refresh every 5 seconds**
+polling_interval = 5
+if "last_poll" not in st.session_state or time.time() - st.session_state["last_poll"] > polling_interval:
     fetch_proactive_messages()
-    time.sleep(polling_interval)
+    st.session_state["last_poll"] = time.time()
 
 
 # **Initialize Chat History**
