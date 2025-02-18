@@ -49,6 +49,12 @@ def fetch_proactive_messages():
         st.error(f"Error fetching proactive messages: {e}")
 
 
+polling_interval = 5  # Check every 5 seconds
+while True:
+    fetch_proactive_messages()
+    time.sleep(polling_interval)
+
+
 # **Initialize Chat History**
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = fetch_chat_history()
