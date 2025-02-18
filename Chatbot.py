@@ -9,7 +9,7 @@ NOVA_AVATAR = "assets/nova.png"
 # 🌐 Webhook URLs
 HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
 SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
-PROACTIVE_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/YOUR-NEW-PROACTIVE-WEBHOOK-ID"
+PROACTIVE_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/7337a77e-1ec8-45da-86b9-c06628865d86"
 
 # **Ensure Chat History is Initialized**
 if "chat_history" not in st.session_state:
