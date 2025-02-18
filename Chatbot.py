@@ -36,16 +36,18 @@ def send_message_to_n8n(content):
 def fetch_proactive_messages():
     try:
         response = requests.get(PROACTIVE_MESSAGE_WEBHOOK)
-        data = response.json()
-        new_messages = data.get("messages", [])
+        if response.status_code == 200:
+            data = response.json()
+            new_messages = data.get("messages", [])
 
-        # Append new messages only if they aren't in the chat history yet
-        for msg in new_messages:
-            if msg not in st.session_state["chat_history"]:
-                st.session_state["chat_history"].append(msg)
-        
-    except Exception:
-        pass  # Don't break the UI on error
+            # Append new messages only if they aren't in the chat history yet
+            for msg in new_messages:
+                if msg not in st.session_state["chat_history"]:
+                    st.session_state["chat_history"].append(msg)
+
+    except Exception as e:
+        st.error(f"Error fetching proactive messages: {e}")
+
 
 # **Initialize Chat History**
 if "chat_history" not in st.session_state:
