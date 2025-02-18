@@ -2,6 +2,12 @@ import streamlit as st
 import requests
 import time
 
+
+# 🖼️ Avatars
+USER_AVATAR = "assets/josh.png"
+NOVA_AVATAR = "assets/nova.png"
+
+
 # 🌐 Webhook URLs
 HISTORY_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/3764813c-37c3-412c-b051-377c72a9049a"
 SEND_MESSAGE_WEBHOOK = "https://emperorjosh.app.n8n.cloud/webhook/d7374fd4-5d48-4229-ae39-2ebbfdc9a33f"
