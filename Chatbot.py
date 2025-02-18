@@ -37,7 +37,6 @@ def send_message_to_n8n(content):
     except Exception as e:
         return f"Connection error: {e}"
 
-# **Fetch New Proactive Messages from n8n**
 def fetch_proactive_messages():
     try:
         response = requests.get(PROACTIVE_MESSAGE_WEBHOOK)
@@ -53,10 +52,11 @@ def fetch_proactive_messages():
             for msg in new_messages:
                 if msg not in st.session_state["chat_history"]:
                     st.session_state["chat_history"].append(msg)
-                    st.experimental_rerun()  # 🔥 Force Streamlit to refresh the UI
+                    st.rerun()  # 🔥 Force UI to refresh with the new message
 
     except Exception as e:
         st.error(f"Error fetching proactive messages: {e}")
+
 
 # **Auto-refresh every 5 seconds**
 polling_interval = 5
