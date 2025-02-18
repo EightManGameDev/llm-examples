@@ -38,15 +38,21 @@ def fetch_proactive_messages():
         response = requests.get(PROACTIVE_MESSAGE_WEBHOOK)
         if response.status_code == 200:
             data = response.json()
+
+            # ✅ Ensure it's always treated as a dictionary
+            if isinstance(data, list) and len(data) > 0:
+                data = data[0]  # Extract the first dictionary inside the list
+
             new_messages = data.get("messages", [])
 
-            # Append new messages only if they aren't in the chat history yet
             for msg in new_messages:
                 if msg not in st.session_state["chat_history"]:
                     st.session_state["chat_history"].append(msg)
+                    st.experimental_rerun()  # 🔥 Force Streamlit to refresh the UI
 
     except Exception as e:
         st.error(f"Error fetching proactive messages: {e}")
+
 
 
 polling_interval = 5  # Check every 5 seconds
