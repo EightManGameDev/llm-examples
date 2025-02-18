@@ -28,19 +28,26 @@ def fetch_proactive_messages():
         if response.status_code == 200:
             data = response.json()
 
-            # ✅ Ensure it's always treated as a dictionary
+            # ✅ Ensure it's always a dictionary, even if it's inside a list
             if isinstance(data, list) and len(data) > 0:
                 data = data[0]  # Extract the first dictionary inside the list
 
             new_messages = data.get("messages", [])
 
+            # ✅ Append new messages ONLY if they aren't already in chat history
+            added_new_message = False
             for msg in new_messages:
                 if msg not in st.session_state["chat_history"]:
                     st.session_state["chat_history"].append(msg)
-                    st.rerun()  # 🔥 Force UI to refresh with new message
+                    added_new_message = True  # ✅ Flag that a new message was added
+
+            # 🔥 Force UI refresh ONLY IF a new message was added
+            if added_new_message:
+                st.rerun()
 
     except Exception as e:
         st.error(f"Error fetching proactive messages: {e}")
+
 
 # **Auto-refresh for new proactive messages every 5 seconds**
 polling_interval = 5
